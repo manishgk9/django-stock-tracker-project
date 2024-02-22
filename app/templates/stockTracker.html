@@ -1,0 +1,126 @@
+{% extends 'starter.html' %}
+{% load static %}
+{% block title %}
+Stock Tracker
+{% endblock %}
+
+{% block css %}
+ <style>
+
+ </style>
+{% endblock %}
+
+{% block body %}
+
+<div class="card p-4 m-4" >
+  <div class="table-responsive mt-2">
+    <table class="table text-center">
+      <thead>
+        <tr>
+          <th scope="col">S.n</th>
+          <th scope="col">Symbol</th>
+          <th scope="col">Market Cap ₹</th>
+          <th scope="col">Open ₹</th>
+          <th scope="col">Previous Close ₹</th>
+          <th scope="col">Day Range ₹</th>
+          <th scope="col">Change ₹</th>
+          <th scope="col">Year Range ₹</th>
+          <th scope="col">Bid ₹</th>
+          <th scope="col">Ask ₹</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s,d in data.items %}
+        <tr>
+          <th scope="row">{{forloop.counter}}</th>
+          <td>{{d.symbol}}</td>
+          <td>₹{{d.market_cap}}</td>
+          <td id="{{s}}_open">{{d.open}}</td>
+          <td id="{{s}}_prev">{{d.previous_close}}</td>
+          <td>{{d.day_range}}</td>
+          <td id="{{s}}_change"><script>
+            // console.log(document.getElementById("{{s}}_open").innerHTML-document.getElementById("{{s}}_prev").innerHTML);
+            var change=document.getElementById("{{s}}_open").innerHTML-document.getElementById("{{s}}_prev").innerHTML
+           change=change.toFixed(2);
+            if(change>0) { document.write('+'+change);
+            document.getElementById("{{s}}_change").style.color='green';
+           } else { document.write(change);
+           document.getElementById("{{s}}_change").style.color='red'; }
+          </script></td>
+          
+          <td>{{d.year_range}}</td>
+          <td>{{d.bid}}</td>
+          <td>{{d.ask}}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    
+  </div>
+</div>
+
+<script>
+  const socket = new WebSocket('ws://127.0.0.1:8000/ws/stocks/');
+
+  socket.addEventListener('message', function(event) {
+    const newData = JSON.parse(event.data);
+    Object.keys(newData).forEach(function(symbol) {
+      const stockData = newData[symbol];
+      const row = document.getElementById(symbol);
+
+      if (row) {
+        row.innerHTML = `
+          <th scope="row">{{forloop.counter}}</th>
+          <td>{stockData.symbol}</td>
+          <td>${stockData.market_cap}</td>
+          <td id="${symbol}_open">${stockData.open}</td>
+          <td id="${symbol}_prev">${stockData.previous_close}</td>
+          <td>${stockData.day_range}</td>
+          <td id="${symbol}_change">${calculateChange(symbol)}</td>
+          <td>${stockData.year_range}</td>
+          <td>${stockData.bid}</td>
+          <td>${stockData.ask}</td>
+        `;
+      } else {
+        // Add a new row if the symbol doesn't exist
+        const newRow = document.createElement('tr');
+        newRow.id = symbol;
+        newRow.innerHTML = `
+          <th scope="row">${forloop.counter}</th>
+          <td>${stockData.symbol}</td>
+          <td>₹${stockData.market_cap}</td>
+          <td id="${symbol}_open">${stockData.open}</td>
+          <td id="${symbol}_prev">${stockData.previous_close}</td>
+          <td>${stockData.day_range}</td>
+          <td id="${symbol}_change">${calculateChange(symbol)}</td>
+          <td>${stockData.year_range}</td>
+          <td>${stockData.bid}</td>
+          <td>${stockData.ask}</td>
+        `;
+        document.getElementById('stockTableBody').appendChild(newRow);
+      }
+    });
+  });
+
+  function calculateChange(symbol) {
+    const open = parseFloat(document.getElementById(`${symbol}_open`).textContent);
+    const prev = parseFloat(document.getElementById(`${symbol}_prev`).textContent);
+    const change = (open - prev).toFixed(2);
+
+    if (change > 0) {
+      return `+${change}`;
+    } else {
+      return change;
+    }
+  }
+</script>
+
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+let ws=new WebSocket('ws://127.0.0.1:8000/ws/stocks/');
+console.log(ws);
+</script>
+{% endblock %}
